@@ -3,7 +3,7 @@ host: localhost:8080 # uncomment to run tests against your local server
 info:
   version: 0.2.0
   title: Domofon API
-  description: Application developed as part of CodeSpace \#1
+  description: Application started as part of CodeSpace and was further developped within Front-end Guild
 basePath: / # there should be version here, but for simplicity lets skip it
 schemes:
   - http
@@ -24,11 +24,53 @@ securityDefinitions:
     description: Provides admin login and password.
 
 paths:
-  /domofon.yaml:
+
+  /event:
+    get:
+      summary: Returns a list of all active Events.
+      description: Active events were not deletes (status != deleted) and their date range is not in the past.
+    post:
+      summary: Creates a new Event. Returns created Event.
+
+  /event/{id}:
+    get:
+      summary: Returns Event with requested ID.
+    put:
+      summary: Updates Event with requested ID.
+      description: Updating an Event is only possible when a UpdateHash is provided with a request.
+    delete:
+      summary: Deletes Event with requested ID.
+      description: Deleted events are not removed from storage. Their status is changed. Updating an Event is only possible when a UpdateHash is provided with a request.
+
+  /event/{id}/trigger:
+    post:
+      summary: Triggers an Event with requested ID.
+      description: Triggering an Event sends notifications to all its recipients
+
+  /event/{id}/locations:
+    get:
+      summary: Returns a list od Event Locations.
+
+    post:
+      summary: Adds a new Event Location.
+
+  /event/{id}/location/{fk}:
+    delete: Removes a location from an event.
+
+  /event/{id}/recipients:
+   get:
+      summary: Returns a list od Event Recipients.
+
+    post:
+      summary: Adds a new Event Recipient.
+
+
+
+  /OLD_domofon.yaml:
     get:
       produces:
         - text/plain; charset=utf-8
-      summary: Retrieved Swagger API specification
+      summary: Retrieve Swagger API specification
       responses:
         200:
           description: YAML describing API
@@ -37,8 +79,8 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
-  /contacts:
+            $ref: '#/definitions/OLD_Error'
+  /OLD_contacts:
     get:
       summary: Returns list of Contact entries
       description: Returned data is JSON array with entries of ContactResponse
@@ -54,11 +96,11 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/ContactResponse'
+              $ref: '#/definitions/OLD_ContactResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
 
     post:
       summary: Allow creation of new Contact entry
@@ -72,7 +114,7 @@ paths:
               id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
               secret: "123457fb-30a4-44b8-99e2-9cb9f9058838"
           schema:
-            $ref: '#/definitions/EntityCreatedWithSecret'
+            $ref: '#/definitions/OLD_EntityCreatedWithSecret'
         422:
           description: Required fields were missing or invalid
           examples:
@@ -80,21 +122,19 @@ paths:
               message: MissingFields
               fields: ['name', 'notifyEmail']
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
       parameters:
        - name: contact
          in: body
          description: Contact to add
          required: true
          schema:
-          $ref: '#/definitions/ContactRequest'
-
-
-  /contacts/sse:
+          $ref: '#/definitions/OLD_ContactRequest'
+  /OLD_contacts/sse:
     get:
       produces: ["text/event-stream"]
       summary: Streaming information about changes to Contacts list
@@ -103,13 +143,12 @@ paths:
         200:
           description: Server-Sent Events stream
           schema:
-            $ref: '#/definitions/Updated'
+            $ref: '#/definitions/OLD_Updated'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
-
-  /contacts/{id}:
+            $ref: '#/definitions/OLD_Error'
+  /OLD_contacts/{id}:
     get:
       summary: Retrieve details of Contact
       parameters:
@@ -122,7 +161,7 @@ paths:
         200:
           description: Contact was found and could be returned
           schema:
-            $ref: '#/definitions/ContactResponse'
+            $ref: '#/definitions/OLD_ContactResponse'
         404:
           description: Unable to find Contact entity
           schema:
@@ -130,7 +169,7 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
     delete:
       summary: Remove Contact entity
       parameters:
@@ -157,14 +196,12 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         401:
           description: Missing or wrong credentials
       security:
       - Bearer: []
-
-
-  /contacts/{id}/notify:
+  /OLD_contacts/{id}/notify:
     post:
       summary: Send notifications to defined email and phone
       parameters:
@@ -185,7 +222,7 @@ paths:
         429:
           description: Too many notification requests
           schema:
-            $ref: '#/definitions/NotificationRetry'
+            $ref: '#/definitions/OLD_NotificationRetry'
         404:
           description: Unable to find Contact entity
           schema:
@@ -193,9 +230,8 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
-
-  /contacts/{id}/important:
+            $ref: '#/definitions/OLD_Error'
+  /OLD_contacts/{id}/important:
     put:
       summary: Change importance of the Contact
       parameters:
@@ -208,7 +244,7 @@ paths:
         in: body
         description: Should Contact be marked as important
         schema:
-          $ref: '#/definitions/IsImportant'
+          $ref: '#/definitions/OLD_IsImportant'
         required: true
       responses:
         200:
@@ -226,7 +262,7 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
     get:
       summary: Get current value of importance
       parameters:
@@ -239,7 +275,7 @@ paths:
         200:
           description: Object describing importance of the Contact
           schema:
-            $ref: '#/definitions/IsImportant'
+            $ref: '#/definitions/OLD_IsImportant'
         404:
           description: Unable to find Contact entity
           schema:
@@ -247,13 +283,12 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         401:
           description: Missing or wrong credentials
       security:
       - Bearer: []
-
-  /contacts/{id}/deputy:
+  /OLD_contacts/{id}/deputy:
     put:
       summary: Change deputy for Contact
       parameters:
@@ -265,7 +300,7 @@ paths:
         - name: deputy
           in: body
           schema:
-            $ref: '#/definitions/Notifee'
+            $ref: '#/definitions/OLD_Notifee'
 
       responses:
         200:
@@ -309,13 +344,12 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         401:
           description: Missing or wrong credentials
       security:
       - Bearer: []
-
-  /categories:
+  /OLD_categories:
     get:
       summary: Returns list of Category entries
       description: Returned data is JSON array with entries of CategoryResponse
@@ -325,11 +359,11 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/CategoryResponse'
+              $ref: '#/definitions/OLD_CategoryResponse'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
 
     post:
       summary: Allow creation of new Category
@@ -342,7 +376,7 @@ paths:
             application/json:
               id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
           schema:
-            $ref: '#/definitions/EntityCreated'
+            $ref: '#/definitions/OLD_EntityCreated'
         422:
           description: Required fields were missing or invalid
           examples:
@@ -350,11 +384,11 @@ paths:
               message: MissingFields
               fields: ['name', 'description', 'message']
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         401:
           description: Missing or wrong credentials
       security:
@@ -365,9 +399,8 @@ paths:
          description: Category to add
          required: true
          schema:
-          $ref: '#/definitions/CategoryRequest'
-
-  /categories/{id}:
+          $ref: '#/definitions/OLD_CategoryRequest'
+  /OLD_categories/{id}:
     get:
       summary: Retrieve details of Category
       parameters:
@@ -380,7 +413,7 @@ paths:
         200:
           description: Cateogry was found and could be returned
           schema:
-            $ref: '#/definitions/CategoryResponse'
+            $ref: '#/definitions/OLD_CategoryResponse'
         404:
           description: Unable to find Category entity
           schema:
@@ -388,7 +421,7 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
     delete:
       summary: Remove Category entity
       parameters:
@@ -413,14 +446,12 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/OLD_Error'
         401:
           description: Missing or wrong credentials
       security:
       - Bearer: []
-
-
-  /categories/{id}/notify:
+  /OLD_categories/{id}/notify:
     post:
       summary: Send notifications to Category, allowed only if isIndividual = false
       parameters:
@@ -441,7 +472,7 @@ paths:
         429:
           description: Too many notification requests
           schema:
-            $ref: '#/definitions/NotificationRetry'
+            $ref: '#/definitions/OLD_NotificationRetry'
         400:
           description: Bad request, check if Category has isIndividual = false, otherwise it is not allowed
           schema:
@@ -453,9 +484,8 @@ paths:
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
-
-  /categories/{id}/messages:
+            $ref: '#/definitions/OLD_Error'
+  /OLD_categories/{id}/messages:
     get:
       summary: Get available messages for Category
       parameters:
@@ -470,7 +500,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/CategoryMessage'
+              $ref: '#/definitions/OLD_CategoryMessage'
     post:
       summary: Add a message for Category
       parameters:
@@ -500,7 +530,7 @@ paths:
           description: Missing or wrong admin token
       security:
       - Bearer: []
-  /categories/{id}/messages/{messageId}:
+  /OLD_categories/{id}/messages/{messageId}:
     delete:
       summary: Remove a Message for given Category.
       description: If there is only one message for category, it cannot be removed.
@@ -563,9 +593,7 @@ paths:
           description: Missing or wrong admin token
       security:
        - Bearer: []
-
-
-  /login:
+  /OLD_login:
     get:
       summary: Get an admin token for use in Bearer schema.
       security:
@@ -582,18 +610,16 @@ paths:
           schema:
             type: string
 
-
 definitions:
 
-  EntityCreated:
+  OLD_EntityCreated:
     type: object
     required:
       - id
     properties:
       id:
         type: string
-
-  EntityCreatedWithSecret:
+  OLD_EntityCreatedWithSecret:
     type: object
     required:
       - id
@@ -603,15 +629,14 @@ definitions:
         type: string
       secret:
         type: string
-
-  IsImportant:
+  OLD_IsImportant:
     type: object
     required:
       - isImportant
     properties:
       isImportant:
         type: boolean
-  NotificationRetry:
+  OLD_NotificationRetry:
     type: object
     required:
       - message
@@ -622,7 +647,7 @@ definitions:
       whenAllowed:
         type: string
         format: datetime
-  Notifee:
+  OLD_Notifee:
     type: object
     required:
       - name
@@ -637,8 +662,7 @@ definitions:
         type: string
       phone:
         type: string
-
-  ContactRequest:
+  OLD_ContactRequest:
     type: object
     required:
       - name
@@ -664,8 +688,7 @@ definitions:
       tillDate:
         type: string
         format: date
-
-  ContactResponse:
+  OLD_ContactResponse:
     type: object
     required:
       - id
@@ -699,37 +722,34 @@ definitions:
       isImportant:
         type: boolean
       deputy:
-        $ref: '#/definitions/Notifee'
+        $ref: '#/definitions/OLD_Notifee'
       nextNotificationAllowedAt:
         type: string
         format: datetime
-
-  Updated:
+  OLD_Updated:
     type: object
     properties:
       updatedAt:
         type: string
         format: date-time
-        
-  CategoryRequest:
+  OLD_CategoryRequest:
     type: object
     required:
      - name
      - description
      - message
-    properties: 
-      name: 
+    properties:
+      name:
         type: string
-      description: 
+      description:
         type: string
       isIndividual:
         type: boolean
         default: false
-      message: 
+      message:
         type: string
         format: text
-
-  CategoryResponse:
+  OLD_CategoryResponse:
     type: object
     required:
       - id
@@ -749,12 +769,11 @@ definitions:
       messages:
         type: array
         items:
-          $ref: '#/definitions/CategoryMessage'
+          $ref: '#/definitions/OLD_CategoryMessage'
       nextNotificationAllowedAt:
         type: string
         format: datetime
-
-  CategoryMessage:
+  OLD_CategoryMessage:
     type: object
     required:
       - id
@@ -764,9 +783,7 @@ definitions:
         type: string
       message:
         type: string
-
-
-  Error:
+  OLD_Error:
     type: object
     required:
       - message
