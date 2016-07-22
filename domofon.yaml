@@ -1,0 +1,783 @@
+swagger: '2.0'
+host: localhost:8080 # uncomment to run tests against your local server
+info:
+  version: 0.2.0
+  title: Domofon API
+  description: Application developed as part of CodeSpace \#1
+basePath: / # there should be version here, but for simplicity lets skip it
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+  - text/plain
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: This can be admin token obtained via `/login`, or in case of contacts - the secret. To use in Swagger UI, prepend `Bearer` to the key obtained (e.g. `Bearer 00000000-0000-0000-0000-420000000000`)
+  Basic:
+    type: basic
+    description: Provides admin login and password.
+
+paths:
+  /domofon.yaml:
+    get:
+      produces:
+        - text/plain; charset=utf-8
+      summary: Retrieved Swagger API specification
+      responses:
+        200:
+          description: YAML describing API
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /contacts:
+    get:
+      summary: Returns list of Contact entries
+      description: Returned data is JSON array with entries of ContactResponse
+      parameters:
+        - name: category
+          in: query
+          description: Filter contacts by category
+          type: string
+          required: false
+      responses:
+        200:
+          description: Return list of Contact entries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ContactResponse'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
+    post:
+      summary: Allow creation of new Contact entry
+      description: "We are aware it should be client-side generated PUT, but for simplicity of implementation we decided to keep POST. Returned String is ID of created event as UUID."
+      responses:
+        200:
+          description: Contact was created
+          examples:
+            text/plain: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
+            application/json:
+              id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
+              secret: "123457fb-30a4-44b8-99e2-9cb9f9058838"
+          schema:
+            $ref: '#/definitions/EntityCreatedWithSecret'
+        422:
+          description: Required fields were missing or invalid
+          examples:
+            application/json:
+              message: MissingFields
+              fields: ['name', 'notifyEmail']
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+      parameters:
+       - name: contact
+         in: body
+         description: Contact to add
+         required: true
+         schema:
+          $ref: '#/definitions/ContactRequest'
+
+
+  /contacts/sse:
+    get:
+      produces: ["text/event-stream"]
+      summary: Streaming information about changes to Contacts list
+      description: Streaming events representing changes to Contacts, after event was received it might be need to reload list of Contacts
+      responses:
+        200:
+          description: Server-Sent Events stream
+          schema:
+            $ref: '#/definitions/Updated'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /contacts/{id}:
+    get:
+      summary: Retrieve details of Contact
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to retrieve
+          required: true
+      responses:
+        200:
+          description: Contact was found and could be returned
+          schema:
+            $ref: '#/definitions/ContactResponse'
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Remove Contact entity
+      parameters:
+      - name: id
+        in: path
+        type: string
+        description: ID of the Contact to remove
+        required: true
+
+      responses:
+        200:
+          description: Contact removed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+
+
+  /contacts/{id}/notify:
+    post:
+      summary: Send notifications to defined email and phone
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to trigger notification for
+          required: true
+      responses:
+        200:
+          description: Notification was sent
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        429:
+          description: Too many notification requests
+          schema:
+            $ref: '#/definitions/NotificationRetry'
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /contacts/{id}/important:
+    put:
+      summary: Change importance of the Contact
+      parameters:
+      - name: id
+        in: path
+        type: string
+        description: ID of the Contact to change importance
+        required: true
+      - name: isimportant
+        in: body
+        description: Should Contact be marked as important
+        schema:
+          $ref: '#/definitions/IsImportant'
+        required: true
+      responses:
+        200:
+          description: Message importance status was changed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    get:
+      summary: Get current value of importance
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to retrieve
+          required: true
+      responses:
+        200:
+          description: Object describing importance of the Contact
+          schema:
+            $ref: '#/definitions/IsImportant'
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+
+  /contacts/{id}/deputy:
+    put:
+      summary: Change deputy for Contact
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to set custom Deputy
+          required: true
+        - name: deputy
+          in: body
+          schema:
+            $ref: '#/definitions/Notifee'
+
+      responses:
+        200:
+          description: Deputy was changed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+
+    delete:
+      summary: Remove deputy
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to remove custom Deputy
+          required: true
+      responses:
+        200:
+          description: Deputy was removed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+
+  /categories:
+    get:
+      summary: Returns list of Category entries
+      description: Returned data is JSON array with entries of CategoryResponse
+      responses:
+        200:
+          description: Return list of Category entries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CategoryResponse'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
+    post:
+      summary: Allow creation of new Category
+      description: "We are aware it should be client-side generated PUT, but for simplicity of implementation we decided to keep POST. Returned String is ID of created event as UUID."
+      responses:
+        200:
+          description: Category was created
+          examples:
+            text/plain: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
+            application/json:
+              id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
+          schema:
+            $ref: '#/definitions/EntityCreated'
+        422:
+          description: Required fields were missing or invalid
+          examples:
+            application/json:
+              message: MissingFields
+              fields: ['name', 'description', 'message']
+          schema:
+            $ref: '#/definitions/Error'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+      parameters:
+       - name: category
+         in: body
+         description: Category to add
+         required: true
+         schema:
+          $ref: '#/definitions/CategoryRequest'
+
+  /categories/{id}:
+    get:
+      summary: Retrieve details of Category
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Category to retrieve
+          required: true
+      responses:
+        200:
+          description: Cateogry was found and could be returned
+          schema:
+            $ref: '#/definitions/CategoryResponse'
+        404:
+          description: Unable to find Category entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Remove Category entity
+      parameters:
+      - name: id
+        in: path
+        type: string
+        description: ID of the Category to remove
+        required: true
+      responses:
+        200:
+          description: Category removed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        404:
+          description: Unable to find Category entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Missing or wrong credentials
+      security:
+      - Bearer: []
+
+
+  /categories/{id}/notify:
+    post:
+      summary: Send notifications to Category, allowed only if isIndividual = false
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Contact to trigger notification for
+          required: true
+      responses:
+        200:
+          description: Notification was sent
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        429:
+          description: Too many notification requests
+          schema:
+            $ref: '#/definitions/NotificationRetry'
+        400:
+          description: Bad request, check if Category has isIndividual = false, otherwise it is not allowed
+          schema:
+            type: string
+        404:
+          description: Unable to find Contact entity
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /categories/{id}/messages:
+    get:
+      summary: Get available messages for Category
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Category
+          required: true
+      responses:
+        200:
+          description: List of available messages
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CategoryMessage'
+    post:
+      summary: Add a message for Category
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Category
+          required: true
+
+        - name: message
+          description: Content of the Message to be added
+          in: body
+          schema:
+            type: string
+      responses:
+        200:
+          description: Message was added
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        422:
+          description: Message was empty
+        401:
+          description: Missing or wrong admin token
+      security:
+      - Bearer: []
+  /categories/{id}/messages/{messageId}:
+    delete:
+      summary: Remove a Message for given Category.
+      description: If there is only one message for category, it cannot be removed.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Category
+          required: true
+        - name: messageId
+          in: path
+          type: string
+          description: ID of the Message to delete
+          required: true
+      responses:
+        200:
+          description: Message was removed
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        401:
+          description: Missing or wrong admin token
+        404:
+          description: Message with given ID was not found
+        400:
+          description: Tried to remove the only message for Category
+      security:
+       - Bearer: []
+    put:
+      summary: Update a Message for given Category
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: ID of the Category
+          required: true
+        - name: messageId
+          in: path
+          type: string
+          description: ID of the Message to delete
+          required: true
+        - name: message
+          in: body
+          schema:
+            type: string
+          description: New content of the Message
+      responses:
+        200:
+          description: Message was updated
+          schema:
+            type: string
+          examples:
+            text/plain: OK
+            application/json:
+              status: OK
+        401:
+          description: Missing or wrong admin token
+      security:
+       - Bearer: []
+
+
+  /login:
+    get:
+      summary: Get an admin token for use in Bearer schema.
+      security:
+        - Basic: []
+      responses:
+        200:
+          description: Admin token was assigned
+          schema:
+            type: string
+          examples:
+            text/plain: 00000000-0000-0000-0000-420000000000
+        401:
+          description: Wrong or missing credentials
+          schema:
+            type: string
+
+
+definitions:
+
+  EntityCreated:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+
+  EntityCreatedWithSecret:
+    type: object
+    required:
+      - id
+      - secret
+    properties:
+      id:
+        type: string
+      secret:
+        type: string
+
+  IsImportant:
+    type: object
+    required:
+      - isImportant
+    properties:
+      isImportant:
+        type: boolean
+  NotificationRetry:
+    type: object
+    required:
+      - message
+      - whenAllowed
+    properties:
+      message:
+        type: string
+      whenAllowed:
+        type: string
+        format: datetime
+  Notifee:
+    type: object
+    required:
+      - name
+      - notifyEmail
+      - phone
+    properties:
+      name:
+        type: string
+      company:
+        type: string
+      notifyEmail:
+        type: string
+      phone:
+        type: string
+
+  ContactRequest:
+    type: object
+    required:
+      - name
+      - category
+      - notifyEmail
+    properties:
+      name:
+        type: string
+      category:
+        type: string
+        format: string
+      company:
+        type: string
+      notifyEmail:
+        type: string
+      phone:
+        type: string
+      adminEmail:
+        type: string
+      fromDate:
+        type: string
+        format: date
+      tillDate:
+        type: string
+        format: date
+
+  ContactResponse:
+    type: object
+    required:
+      - id
+      - name
+      - category
+      - notifyEmail
+      - adminEmail
+      - isImportant
+      - fromDate
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      category:
+        type: string
+      company:
+        type: string
+      notifyEmail:
+        type: string
+      phone:
+        type: string
+      adminEmail:
+        type: string
+      fromDate:
+        type: string
+        format: date
+      tillDate:
+        type: string
+        format: date
+      isImportant:
+        type: boolean
+      deputy:
+        $ref: '#/definitions/Notifee'
+      nextNotificationAllowedAt:
+        type: string
+        format: datetime
+
+  Updated:
+    type: object
+    properties:
+      updatedAt:
+        type: string
+        format: date-time
+        
+  CategoryRequest:
+    type: object
+    required:
+     - name
+     - description
+     - message
+    properties: 
+      name: 
+        type: string
+      description: 
+        type: string
+      isIndividual:
+        type: boolean
+        default: false
+      message: 
+        type: string
+        format: text
+
+  CategoryResponse:
+    type: object
+    required:
+      - id
+      - name
+      - description
+      - isIndividual
+      - messages
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      isIndividual:
+        type: boolean
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/CategoryMessage'
+      nextNotificationAllowedAt:
+        type: string
+        format: datetime
+
+  CategoryMessage:
+    type: object
+    required:
+      - id
+      - message
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+
+
+  Error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: array
+        items:
+          type: string
+
