@@ -1,68 +1,197 @@
 swagger: '2.0'
+
 host: localhost:8080 # uncomment to run tests against your local server
+
 info:
   version: 0.2.0
   title: Domofon API
   description: Application started as part of CodeSpace and was further developped within Front-end Guild
-basePath: / # there should be version here, but for simplicity lets skip it
+
+basePath: /api
+
 schemes:
   - http
   - https
+
 consumes:
   - application/json
+
 produces:
   - application/json
-  - text/plain
+
 securityDefinitions:
-  Bearer:
+  EventUpdateToken:
+    description: A token stored in an Event which allows for updating selected object.
     type: apiKey
     name: Authorization
     in: header
-    description: This can be admin token obtained via `/login`, or in case of contacts - the secret. To use in Swagger UI, prepend `Bearer` to the key obtained (e.g. `Bearer 00000000-0000-0000-0000-420000000000`)
-  Basic:
-    type: basic
-    description: Provides admin login and password.
+  AdminAuthorisationToken:
+    type: apiKey
+    name: Authorization
+    in: header
 
 paths:
 
-  /event:
-    get:
-      summary: Returns a list of all active Events.
-      description: Active events were not deletes (status != deleted) and their date range is not in the past.
-    post:
-      summary: Creates a new Event. Returns created Event.
+  /events:
 
-  /event/{id}:
     get:
-      summary: Returns Event with requested ID.
+      summary: Returns a list of active Events.
+      description: Active events are not deleted (status != deleted) and their date range is not in the past. Returns Events without embeded related objects (recipients).
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/Event'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/Error'
+
+    post:
+      summary: Creates a new Event.
+      description: Created object can contain a list of location ids and a list of Recipients. Returns an 201 response with created Event and Location header set to new Event API path.
+      produces:
+      - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/Event'
+        # 422:
+        #   description: Required fields were missing or invalid
+        #   schema:
+        #     $ref: '#/definitions/Error'
+        #   examples:
+        #     application/json:
+        #       status: ValidationError
+        #       fields: ['name', 'notifyEmail']
+
+  /events/{id}:
+    get:
+      summary: Returns an Event with requested ID.
+      description: Returned Event contains embedded objects (recipients).
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+
     put:
       summary: Updates Event with requested ID.
-      description: Updating an Event is only possible when a UpdateHash is provided with a request.
+      description: Updating an Event is only possible when a UpdateToken is provided within the Authorization request header. Returns 200 response.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+
     delete:
       summary: Deletes Event with requested ID.
-      description: Deleted events are not removed from storage. Their status is changed. Updating an Event is only possible when a UpdateHash is provided with a request.
+      description: Deleted events are not removed from storage. Their status is changed. Deleting an Event is only possible when a UpdateToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
 
-  /event/{id}/trigger:
+  /events/{id}/notifications:
     post:
-      summary: Triggers an Event with requested ID.
-      description: Triggering an Event sends notifications to all its recipients
+      summary: Triggers sending Event noifications to all Recipients. Returns 200 response.
+      description: No request body required.
 
-  /event/{id}/locations:
+  /events/{id}/locations:
+    post:
+      summary: Adds a new Location to Event.
+      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Request body requires an object containing added Location identifier in an ID property.
+
+  /events/{id}/locations/{fk}:
+    delete:
+      summary: Removes a Location from an Event.
+      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Request body requires an object containing deleted Location identifier in an ID property.
+
+  /events/{id}/recipients:
     get:
-      summary: Returns a list od Event Locations.
-
-    post:
-      summary: Adds a new Event Location.
-
-  /event/{id}/location/{fk}:
-    delete: Removes a location from an event.
-
-  /event/{id}/recipients:
-   get:
-      summary: Returns a list od Event Recipients.
-
+      summary: Returns a list of active Event Recipients.
     post:
       summary: Adds a new Event Recipient.
+      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Returns an 201 response with created Recipient and Location header set to new Recipient API path.
+
+  /events/{id}/recipients/{fk}:
+    get:
+      summary: Gets an Event Recipient.
+    put:
+      summary: Update an Event Recipient.
+    delete:
+      summary: Removes a Recipient from an Event.
+      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Deleting a Recipient does not remove it from storage but changes its status.
+
+  /categoreis:
+    get:
+      summary: Gets a list of active Categories.
+    post:
+      summary: Creates a new Category.
+      description: Only possible when an Admin login token is provided within the Authorization request header. Returns an 201 response with created Category and Location header set to new Category API path.
+
+  /categories/{id}:
+    get:
+      summary: Returns a Category with requested ID.
+    put:
+      summary: Updates a Category with requested ID.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+    delete:
+      summary: Deletes a Category with requested ID.
+      description: Only possible when an Admin login token is provided within the Authorization request header. Deleting a Category does not remove it from storage but changes its status.
+
+  /locations:
+    get:
+      summary: Returns a list of all active Locations.
+      description: Active locations (status != deleted).
+    post:
+      summary: Creates a new Location.
+      description: Only possible when an Admin login token is provided within the Authorization request header. Returns an 201 response with created object and Location header set to new object API path.
+
+  /locations/{id}:
+    get:
+      summary: Returns a Location with requested ID.
+    put:
+      summary: Updates a Location with requested ID.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+    delete:
+      summary: Deletes a Location with requested ID.
+      description: Only possible when an Admin login token is provided within the Authorization request header. Deleting a Category does not remove it from storage but changes its status.
+
+  /email-templates:
+    get:
+      summary: Returns a list of Email Templates.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+
+  /email-tempaltes/{id}:
+    get:
+      summary: Returns an Email Template.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+    put:
+      summary: Updates an Email Template.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+
+  /admins:
+    get:
+      summary: Returns a list of Admins.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
+
+  /admins/authorisation-tokens:
+    post:
+      summary: Creates an Admin authorisation token.
+      description: Expects an object containing admin email and password. Returns an 201 response an object containing a new authorisation token.
+
+  /admins/{id}:
+    get:
+      summary: Returns an Admin.
+      description: Only possible when an Admin login token is provided within the Authorization request header.
 
 
 
@@ -611,6 +740,61 @@ paths:
             type: string
 
 definitions:
+
+  Event:
+    type: object,
+    properties:
+      id:
+        type: String
+      editHash:
+        type: string
+      isImportant:
+        type: boolean
+        default: false
+      fromDate:
+        type: datetime
+        default: now()
+      toDate:
+        type: datetime
+        default: now() + 1 day
+      emailTemplate:
+        type: string
+      smsTemplate:
+        type: string
+      noteTemplate:
+        type: string
+      useCounter:
+        type: integer
+        default: 0
+      status:
+        type: integer
+        default: 0
+      recipients:
+        type: array
+        items:
+          $ref: '#/definitions/Recipient'
+      categoryId:
+        type: string
+      locationIds:
+        type: array
+        items:
+          type: integer
+    required:
+      - updateHash
+      - fromDate
+      - toDate
+      - emailTemplate
+      - smsTemplate
+      - noteTemplate
+
+  Recipient:
+    type: object
+    properties:
+      id:
+        type: string
+
+
+
 
   OLD_EntityCreated:
     type: object
