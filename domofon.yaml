@@ -1,24 +1,18 @@
 swagger: '2.0'
 
 host: localhost:8080 # uncomment to run tests against your local server
-
 info:
   version: 0.2.0
   title: Domofon API
   description: Application started as part of CodeSpace and was further developped within Front-end Guild
-
 basePath: /api
-
 schemes:
   - http
   - https
-
 consumes:
   - application/json
-
 produces:
   - application/json
-
 securityDefinitions:
   EventAccessToken:
     description: A token stored in an Event which allows for updating selected object.
@@ -29,20 +23,16 @@ securityDefinitions:
     type: apiKey
     name: Authorization
     in: header
-
 paths:
-
   /events:
-
     get:
       summary: Returns a list of active Events.
       description: Returns only basic Event attributes. Sensitive data like recipient email are not returned. Active events are not deleted (status != deleted) and their date range is not in the past.
-      produces:
-        - application/json
       responses:
         200:
+          description: Event list.
           schema:
-            type: array,
+            type: array
             items:
               $ref: '#/definitions/SimpleEvent'
         500:
@@ -53,10 +43,9 @@ paths:
     post:
       summary: Creates a new Event.
       description: Created object can contain a list of location ids and a list of Recipients. Returns an 201 response with created Event and Location header set to new Event API path.
-      produces:
-      - application/json
       responses:
         201:
+          description: Created Event.
           schema:
             $ref: '#/definitions/Event'
         422:
@@ -83,10 +72,10 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
+          description: Full Event data.
           schema:
             $ref: '#/definitions/Event'
         401:
@@ -111,8 +100,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -143,8 +131,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -175,8 +162,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -205,8 +191,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         201:
           schema:
@@ -231,8 +216,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         201:
           schema:
@@ -270,8 +254,7 @@ paths:
           type: string
           description: Location ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -299,8 +282,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -329,8 +311,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         201:
           schema:
@@ -367,8 +348,7 @@ paths:
           type: string
           description: Recipient ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -400,8 +380,7 @@ paths:
           type: string
           description: Recipient ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -437,8 +416,7 @@ paths:
           type: string
           description: Recipient ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -474,8 +452,7 @@ paths:
           type: string
           description: Recipient ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -497,8 +474,7 @@ paths:
 
     get:
       summary: Gets a list of active Categories.
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -513,8 +489,6 @@ paths:
     post:
       summary: Creates a new Category.
       description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Returns an 201 response with created Category and Location header set to new Category API path.
-      produces:
-      - application/json
       responses:
         201:
           schema:
@@ -546,8 +520,7 @@ paths:
           type: string
           description: Category ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -574,8 +547,7 @@ paths:
           type: string
           description: Category ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -606,8 +578,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -638,8 +609,7 @@ paths:
           type: string
           description: Category ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -662,8 +632,7 @@ paths:
     get:
       summary: Returns a list of all active Locations.
       description: Active locations (status != deleted).
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -678,8 +647,6 @@ paths:
     post:
       summary: Creates a new Location.
       description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Returns an 201 response with created object and Location header set to new object API path.
-      produces:
-      - application/json
       responses:
         201:
           schema:
@@ -711,8 +678,7 @@ paths:
           type: string
           description: Location ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -739,8 +705,7 @@ paths:
           type: string
           description: Location ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -771,8 +736,7 @@ paths:
           type: string
           description: Event ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -803,8 +767,7 @@ paths:
           type: string
           description: Location ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -827,14 +790,13 @@ paths:
     get:
       summary: Returns a list of Email Templates.
       description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
             type: array,
             items:
-              $ref: '#/definitions/EmailTemplete'
+              $ref: '#/definitions/EmailTemplate'
         401:
           description: Unauthorized. Authorization token missing or invalid.
           schema:
@@ -855,8 +817,7 @@ paths:
           type: string
           description: Template ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -883,8 +844,7 @@ paths:
           type: string
           description: Template ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -915,8 +875,7 @@ paths:
           type: string
           description: Template ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -942,8 +901,7 @@ paths:
     get:
       summary: Returns a list of Admins.
       description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -964,8 +922,7 @@ paths:
     post:
       summary: Creates an Admin authorization token.
       description: Expects an object containing admin email and password. Returns an 201 response an object containing a new authorization token.
-      produces:
-        - application/json
+
       responses:
         201:
           schema:
@@ -992,8 +949,7 @@ paths:
           type: string
           description: Admin ID
           required: true
-      produces:
-        - application/json
+
       responses:
         200:
           schema:
@@ -1017,7 +973,7 @@ definitions:
     type: object
     properties:
       id:
-        type: String
+        type: string
       name:
         type: string
       isImportant:
@@ -1041,11 +997,11 @@ definitions:
         type: boolean
         default: false
       fromDate:
-        type: datetime
-        default: now()
+        type: string
+        format: date
       toDate:
-        type: datetime
-        default: now() + 1 day
+        type: string
+        format: date
       emailTemplate:
         type: string
       smsTemplate:
@@ -1077,7 +1033,7 @@ definitions:
       - noteTemplate
 
   Recipient:
-    type: objects
+    type: object
     properties:
       id:
         type: string
@@ -1100,7 +1056,7 @@ definitions:
       - email
 
   SuccessResponse:
-    type: object,
+    type: object
     required:
       - status
       - message
@@ -1142,7 +1098,7 @@ definitions:
     type: object
     properties:
       id:
-        type: String
+        type: string
       name:
         type: string
       emailTemplate:
@@ -1164,7 +1120,7 @@ definitions:
     type: object
     properties:
       id:
-        type: String
+        type: string
       name:
         type: string
       address:
@@ -1179,11 +1135,11 @@ definitions:
       - address
       - city
 
-  EmailTemplete:
+  EmailTemplate:
     type: object
     properties:
       id:
-        type: String
+        type: string
       title:
         type: string
       body:
@@ -1196,7 +1152,7 @@ definitions:
     type: object
     properties:
       email:
-        type: String
+        type: string
     required:
       - email
 
@@ -1204,6 +1160,6 @@ definitions:
     type: object
     properties:
       token:
-        type: String
+        type: string
     required:
       - token
