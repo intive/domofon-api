@@ -20,12 +20,12 @@ produces:
   - application/json
 
 securityDefinitions:
-  EventUpdateToken:
+  EventAccessToken:
     description: A token stored in an Event which allows for updating selected object.
     type: apiKey
     name: Authorization
     in: header
-  AdminAuthorisationToken:
+  AdminAuthorizationToken:
     type: apiKey
     name: Authorization
     in: header
@@ -36,7 +36,7 @@ paths:
 
     get:
       summary: Returns a list of active Events.
-      description: Active events are not deleted (status != deleted) and their date range is not in the past. Returns Events without embeded related objects (recipients).
+      description: Returns only basic Event attributes. Sensitive data like recipient email are not returned. Active events are not deleted (status != deleted) and their date range is not in the past.
       produces:
         - application/json
       responses:
@@ -44,11 +44,11 @@ paths:
           schema:
             type: array,
             items:
-              $ref: '#/definitions/Event'
+              $ref: '#/definitions/SimpleEvent'
         500:
           description: Unexpeted error.
           schema:
-            $ref: '#/definitions/Error'
+            $ref: '#/definitions/ErrorResponse'
 
     post:
       summary: Creates a new Event.
@@ -59,694 +59,983 @@ paths:
         201:
           schema:
             $ref: '#/definitions/Event'
-        # 422:
-        #   description: Required fields were missing or invalid
-        #   schema:
-        #     $ref: '#/definitions/Error'
-        #   examples:
-        #     application/json:
-        #       status: ValidationError
-        #       fields: ['name', 'notifyEmail']
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+          examples:
+            application/json:
+              massage: Invalid data.
+              fields: ['name', 'recipients']
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}:
+
     get:
       summary: Returns an Event with requested ID.
-      description: Returned Event contains embedded objects (recipients).
+      description: Returned Event with all attributes contains embedded objects (recipients). Retrieving an entire Event is only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header.
       parameters:
         - name: id
           in: path
           type: string
           description: Event ID
           required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Event'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
     put:
       summary: Updates Event with requested ID.
-      description: Updating an Event is only possible when a UpdateToken is provided within the Authorization request header. Returns 200 response.
+      description: Updating an Event is only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Returns 200 response.
       parameters:
         - name: id
           in: path
           type: string
           description: Event ID
           required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Event'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+    patch:
+      summary: Updates Event with requested ID attributes.
+      description: Updating an Event is only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Returns 200 response.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Event'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
     delete:
       summary: Deletes Event with requested ID.
-      description: Deleted events are not removed from storage. Their status is changed. Deleting an Event is only possible when a UpdateToken is provided within the Authorization request header.
+      description: Deleted events are not removed from storage. Their status is changed. Deleting an Event is only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header.
       parameters:
         - name: id
           in: path
           type: string
           description: Event ID
           required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}/notifications:
+
     post:
       summary: Triggers sending Event noifications to all Recipients. Returns 200 response.
       description: No request body required.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}/locations:
+
     post:
       summary: Adds a new Location to Event.
-      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Request body requires an object containing added Location identifier in an ID property.
+      descripton: Only possible when an Event EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Request body requires an object containing added Location identifier in an ID property.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Location not found.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}/locations/{fk}:
+
     delete:
       summary: Removes a Location from an Event.
-      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Request body requires an object containing deleted Location identifier in an ID property.
+      descripton: Only possible when an Event EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Request body requires an object containing deleted Location identifier in an ID property.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+        - name: fk
+          in: path
+          type: string
+          description: Location ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event or Location not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}/recipients:
+
     get:
       summary: Returns a list of active Event Recipients.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/Recipient'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     post:
       summary: Adds a new Event Recipient.
-      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Returns an 201 response with created Recipient and Location header set to new Recipient API path.
+      descripton: Only possible when an Event EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Returns an 201 response with created Recipient and Location header set to new Recipient API path.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/Recipient'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Invalid recipient data.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /events/{id}/recipients/{fk}:
+
     get:
       summary: Gets an Event Recipient.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+        - name: fk
+          in: path
+          type: string
+          description: Recipient ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Recipient'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event or Recipient not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     put:
       summary: Update an Event Recipient.
+      description: Only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+        - name: fk
+          in: path
+          type: string
+          description: Recipient ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Recipient'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+    patch:
+      summary: Update an Event Recipient attributes.
+      description: Only possible when an EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+        - name: fk
+          in: path
+          type: string
+          description: Recipient ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Recipient'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     delete:
       summary: Removes a Recipient from an Event.
-      descripton: Only possible when an Event UpdateToken is provided within the Authorization request header. Deleting a Recipient does not remove it from storage but changes its status.
+      descripton: Only possible when an Event EventAccessToken or an AdminAuthorizationToken is provided within the Authorization request header. Deleting a Recipient does not remove it from storage but changes its status.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+        - name: fk
+          in: path
+          type: string
+          description: Recipient ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Event or Recipient not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /categoreis:
+
     get:
       summary: Gets a list of active Categories.
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/Category'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     post:
       summary: Creates a new Category.
-      description: Only possible when an Admin login token is provided within the Authorization request header. Returns an 201 response with created Category and Location header set to new Category API path.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Returns an 201 response with created Category and Location header set to new Category API path.
+      produces:
+      - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/Category'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+          examples:
+            application/json:
+              massage: Invalid data.
+              fields: ['name']
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /categories/{id}:
+
     get:
       summary: Returns a Category with requested ID.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Category ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Category'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Category not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     put:
       summary: Updates a Category with requested ID.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Category ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Category'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Category not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+    patch:
+      summary: Updates attributes of a Category with requested ID.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Category'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Category not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     delete:
       summary: Deletes a Category with requested ID.
-      description: Only possible when an Admin login token is provided within the Authorization request header. Deleting a Category does not remove it from storage but changes its status.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Deleting a Category does not remove it from storage but changes its status.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Category ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Category not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /locations:
+
     get:
       summary: Returns a list of all active Locations.
       description: Active locations (status != deleted).
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/Location'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     post:
       summary: Creates a new Location.
-      description: Only possible when an Admin login token is provided within the Authorization request header. Returns an 201 response with created object and Location header set to new object API path.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Returns an 201 response with created object and Location header set to new object API path.
+      produces:
+      - application/json
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/Location'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+          examples:
+            application/json:
+              massage: Invalid data.
+              fields: ['name']
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /locations/{id}:
+
     get:
       summary: Returns a Location with requested ID.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Location ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Category'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Location not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     put:
       summary: Updates a Location with requested ID.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Location ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Location'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Location not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+    patch:
+      summary: Updates attributes of a Location with requested ID.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Event ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/Location'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Location not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     delete:
       summary: Deletes a Location with requested ID.
-      description: Only possible when an Admin login token is provided within the Authorization request header. Deleting a Category does not remove it from storage but changes its status.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header. Deleting a Location does not remove it from storage but changes its status.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Location ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Location not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /email-templates:
+
     get:
       summary: Returns a list of Email Templates.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/EmailTemplete'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /email-tempaltes/{id}:
+
     get:
       summary: Returns an Email Template.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Template ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmailTemplate'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Template not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
     put:
       summary: Updates an Email Template.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Template ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmailTemplate'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Template not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+    patch:
+      summary: Updates attributes of a Email Template with requested ID.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Template ID
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmailTemplate'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        404:
+          description: Template not found.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        422:
+          description: Required fields were missing or invalid.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /admins:
     get:
       summary: Returns a list of Admins.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/Admin'
+        401:
+          description: Unauthorized. Authorization token missing or invalid.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
-  /admins/authorisation-tokens:
+  /admins/authorization-tokens:
+
     post:
-      summary: Creates an Admin authorisation token.
-      description: Expects an object containing admin email and password. Returns an 201 response an object containing a new authorisation token.
+      summary: Creates an Admin authorization token.
+      description: Expects an object containing admin email and password. Returns an 201 response an object containing a new authorization token.
+      produces:
+        - application/json
+      responses:
+        201:
+          schema:
+            type: array,
+            items:
+              $ref: '#/definitions/AthorizationToken'
+        401:
+          description: Invalid login or password.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   /admins/{id}:
+
     get:
       summary: Returns an Admin.
-      description: Only possible when an Admin login token is provided within the Authorization request header.
-
-
-
-  /OLD_domofon.yaml:
-    get:
+      description: Only possible when an AdminAuthorizationToken is provided within the Authorization request header.
+      parameters:
+        - name: id
+          in: path
+          type: string
+          description: Admin ID
+          required: true
       produces:
-        - text/plain; charset=utf-8
-      summary: Retrieve Swagger API specification
+        - application/json
       responses:
         200:
-          description: YAML describing API
           schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-  /OLD_contacts:
-    get:
-      summary: Returns list of Contact entries
-      description: Returned data is JSON array with entries of ContactResponse
-      parameters:
-        - name: category
-          in: query
-          description: Filter contacts by category
-          type: string
-          required: false
-      responses:
-        200:
-          description: Return list of Contact entries
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/OLD_ContactResponse'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-
-    post:
-      summary: Allow creation of new Contact entry
-      description: "We are aware it should be client-side generated PUT, but for simplicity of implementation we decided to keep POST. Returned String is ID of created event as UUID."
-      responses:
-        200:
-          description: Contact was created
-          examples:
-            text/plain: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
-            application/json:
-              id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
-              secret: "123457fb-30a4-44b8-99e2-9cb9f9058838"
-          schema:
-            $ref: '#/definitions/OLD_EntityCreatedWithSecret'
-        422:
-          description: Required fields were missing or invalid
-          examples:
-            application/json:
-              message: MissingFields
-              fields: ['name', 'notifyEmail']
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-      parameters:
-       - name: contact
-         in: body
-         description: Contact to add
-         required: true
-         schema:
-          $ref: '#/definitions/OLD_ContactRequest'
-  /OLD_contacts/sse:
-    get:
-      produces: ["text/event-stream"]
-      summary: Streaming information about changes to Contacts list
-      description: Streaming events representing changes to Contacts, after event was received it might be need to reload list of Contacts
-      responses:
-        200:
-          description: Server-Sent Events stream
-          schema:
-            $ref: '#/definitions/OLD_Updated'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-  /OLD_contacts/{id}:
-    get:
-      summary: Retrieve details of Contact
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to retrieve
-          required: true
-      responses:
-        200:
-          description: Contact was found and could be returned
-          schema:
-            $ref: '#/definitions/OLD_ContactResponse'
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-    delete:
-      summary: Remove Contact entity
-      parameters:
-      - name: id
-        in: path
-        type: string
-        description: ID of the Contact to remove
-        required: true
-
-      responses:
-        200:
-          description: Contact removed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
+            $ref: '#/definitions/Admin'
         401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-  /OLD_contacts/{id}/notify:
-    post:
-      summary: Send notifications to defined email and phone
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to trigger notification for
-          required: true
-      responses:
-        200:
-          description: Notification was sent
+          description: Unauthorized. Authorization token missing or invalid.
           schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        429:
-          description: Too many notification requests
-          schema:
-            $ref: '#/definitions/OLD_NotificationRetry'
+            $ref: '#/definitions/ErrorResponse'
         404:
-          description: Unable to find Contact entity
+          description: Admin not found.
           schema:
-            type: string
-        default:
-          description: Unexpected error
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpeted error.
           schema:
-            $ref: '#/definitions/OLD_Error'
-  /OLD_contacts/{id}/important:
-    put:
-      summary: Change importance of the Contact
-      parameters:
-      - name: id
-        in: path
-        type: string
-        description: ID of the Contact to change importance
-        required: true
-      - name: isimportant
-        in: body
-        description: Should Contact be marked as important
-        schema:
-          $ref: '#/definitions/OLD_IsImportant'
-        required: true
-      responses:
-        200:
-          description: Message importance status was changed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-    get:
-      summary: Get current value of importance
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to retrieve
-          required: true
-      responses:
-        200:
-          description: Object describing importance of the Contact
-          schema:
-            $ref: '#/definitions/OLD_IsImportant'
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-  /OLD_contacts/{id}/deputy:
-    put:
-      summary: Change deputy for Contact
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to set custom Deputy
-          required: true
-        - name: deputy
-          in: body
-          schema:
-            $ref: '#/definitions/OLD_Notifee'
-
-      responses:
-        200:
-          description: Deputy was changed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-
-    delete:
-      summary: Remove deputy
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to remove custom Deputy
-          required: true
-      responses:
-        200:
-          description: Deputy was removed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-  /OLD_categories:
-    get:
-      summary: Returns list of Category entries
-      description: Returned data is JSON array with entries of CategoryResponse
-      responses:
-        200:
-          description: Return list of Category entries
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/OLD_CategoryResponse'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-
-    post:
-      summary: Allow creation of new Category
-      description: "We are aware it should be client-side generated PUT, but for simplicity of implementation we decided to keep POST. Returned String is ID of created event as UUID."
-      responses:
-        200:
-          description: Category was created
-          examples:
-            text/plain: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
-            application/json:
-              id: "d41b57fb-30a4-44b8-99e2-9cb9f9058838"
-          schema:
-            $ref: '#/definitions/OLD_EntityCreated'
-        422:
-          description: Required fields were missing or invalid
-          examples:
-            application/json:
-              message: MissingFields
-              fields: ['name', 'description', 'message']
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-      parameters:
-       - name: category
-         in: body
-         description: Category to add
-         required: true
-         schema:
-          $ref: '#/definitions/OLD_CategoryRequest'
-  /OLD_categories/{id}:
-    get:
-      summary: Retrieve details of Category
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Category to retrieve
-          required: true
-      responses:
-        200:
-          description: Cateogry was found and could be returned
-          schema:
-            $ref: '#/definitions/OLD_CategoryResponse'
-        404:
-          description: Unable to find Category entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-    delete:
-      summary: Remove Category entity
-      parameters:
-      - name: id
-        in: path
-        type: string
-        description: ID of the Category to remove
-        required: true
-      responses:
-        200:
-          description: Category removed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        404:
-          description: Unable to find Category entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-        401:
-          description: Missing or wrong credentials
-      security:
-      - Bearer: []
-  /OLD_categories/{id}/notify:
-    post:
-      summary: Send notifications to Category, allowed only if isIndividual = false
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Contact to trigger notification for
-          required: true
-      responses:
-        200:
-          description: Notification was sent
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        429:
-          description: Too many notification requests
-          schema:
-            $ref: '#/definitions/OLD_NotificationRetry'
-        400:
-          description: Bad request, check if Category has isIndividual = false, otherwise it is not allowed
-          schema:
-            type: string
-        404:
-          description: Unable to find Contact entity
-          schema:
-            type: string
-        default:
-          description: Unexpected error
-          schema:
-            $ref: '#/definitions/OLD_Error'
-  /OLD_categories/{id}/messages:
-    get:
-      summary: Get available messages for Category
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Category
-          required: true
-      responses:
-        200:
-          description: List of available messages
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/OLD_CategoryMessage'
-    post:
-      summary: Add a message for Category
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Category
-          required: true
-
-        - name: message
-          description: Content of the Message to be added
-          in: body
-          schema:
-            type: string
-      responses:
-        200:
-          description: Message was added
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        422:
-          description: Message was empty
-        401:
-          description: Missing or wrong admin token
-      security:
-      - Bearer: []
-  /OLD_categories/{id}/messages/{messageId}:
-    delete:
-      summary: Remove a Message for given Category.
-      description: If there is only one message for category, it cannot be removed.
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Category
-          required: true
-        - name: messageId
-          in: path
-          type: string
-          description: ID of the Message to delete
-          required: true
-      responses:
-        200:
-          description: Message was removed
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        401:
-          description: Missing or wrong admin token
-        404:
-          description: Message with given ID was not found
-        400:
-          description: Tried to remove the only message for Category
-      security:
-       - Bearer: []
-    put:
-      summary: Update a Message for given Category
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the Category
-          required: true
-        - name: messageId
-          in: path
-          type: string
-          description: ID of the Message to delete
-          required: true
-        - name: message
-          in: body
-          schema:
-            type: string
-          description: New content of the Message
-      responses:
-        200:
-          description: Message was updated
-          schema:
-            type: string
-          examples:
-            text/plain: OK
-            application/json:
-              status: OK
-        401:
-          description: Missing or wrong admin token
-      security:
-       - Bearer: []
-  /OLD_login:
-    get:
-      summary: Get an admin token for use in Bearer schema.
-      security:
-        - Basic: []
-      responses:
-        200:
-          description: Admin token was assigned
-          schema:
-            type: string
-          examples:
-            text/plain: 00000000-0000-0000-0000-420000000000
-        401:
-          description: Wrong or missing credentials
-          schema:
-            type: string
+            $ref: '#/definitions/ErrorResponse'
 
 definitions:
 
-  Event:
-    type: object,
+  SimpleEvent:
+    type: object
     properties:
       id:
         type: String
-      editHash:
+      name:
+        type: string
+      isImportant:
+        type: boolean
+        default: false
+      noteTemplate:
+        type: string
+      categoryId:
+        type: string
+
+  Event:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      accessToken:
         type: string
       isImportant:
         type: boolean
@@ -788,193 +1077,60 @@ definitions:
       - noteTemplate
 
   Recipient:
-    type: object
+    type: objects
     properties:
       id:
         type: string
-
-
-
-
-  OLD_EntityCreated:
-    type: object
-    required:
-      - id
-    properties:
-      id:
+      firstName:
         type: string
-  OLD_EntityCreatedWithSecret:
-    type: object
-    required:
-      - id
-      - secret
-    properties:
-      id:
+      lastName:
         type: string
-      secret:
-        type: string
-  OLD_IsImportant:
-    type: object
-    required:
-      - isImportant
-    properties:
-      isImportant:
-        type: boolean
-  OLD_NotificationRetry:
-    type: object
-    required:
-      - message
-      - whenAllowed
-    properties:
-      message:
-        type: string
-      whenAllowed:
-        type: string
-        format: datetime
-  OLD_Notifee:
-    type: object
-    required:
-      - name
-      - notifyEmail
-      - phone
-    properties:
-      name:
-        type: string
-      company:
-        type: string
-      notifyEmail:
+      email:
         type: string
       phone:
         type: string
-  OLD_ContactRequest:
-    type: object
-    required:
-      - name
-      - category
-      - notifyEmail
-    properties:
-      name:
-        type: string
-      category:
-        type: string
-        format: string
-      company:
-        type: string
-      notifyEmail:
-        type: string
-      phone:
-        type: string
-      adminEmail:
-        type: string
-      fromDate:
-        type: string
-        format: date
-      tillDate:
-        type: string
-        format: date
-  OLD_ContactResponse:
-    type: object
-    required:
-      - id
-      - name
-      - category
-      - notifyEmail
-      - adminEmail
-      - isImportant
-      - fromDate
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      category:
-        type: string
-      company:
-        type: string
-      notifyEmail:
-        type: string
-      phone:
-        type: string
-      adminEmail:
-        type: string
-      fromDate:
-        type: string
-        format: date
-      tillDate:
-        type: string
-        format: date
-      isImportant:
-        type: boolean
-      deputy:
-        $ref: '#/definitions/OLD_Notifee'
-      nextNotificationAllowedAt:
-        type: string
-        format: datetime
-  OLD_Updated:
-    type: object
-    properties:
-      updatedAt:
-        type: string
-        format: date-time
-  OLD_CategoryRequest:
-    type: object
-    required:
-     - name
-     - description
-     - message
-    properties:
-      name:
-        type: string
-      description:
-        type: string
-      isIndividual:
+      isAuthor:
         type: boolean
         default: false
-      message:
-        type: string
-        format: text
-  OLD_CategoryResponse:
-    type: object
+      status:
+        type: integer
+        default: 0
     required:
-      - id
-      - name
-      - description
-      - isIndividual
-      - messages
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      description:
-        type: string
-      isIndividual:
-        type: boolean
-      messages:
-        type: array
-        items:
-          $ref: '#/definitions/OLD_CategoryMessage'
-      nextNotificationAllowedAt:
-        type: string
-        format: datetime
-  OLD_CategoryMessage:
-    type: object
+      - firstName
+      - email
+
+  SuccessResponse:
+    type: object,
     required:
-      - id
+      - status
       - message
     properties:
-      id:
+      status:
         type: string
-      message:
-        type: string
-  OLD_Error:
+
+  ErrorResponse:
     type: object
     required:
+      - status
       - message
     properties:
+      status:
+        type: string
       code:
         type: integer
-        format: int32
+      message:
+        type: string
+
+  ValidationErrorResponse:
+    type: object
+    required:
+      - status
+      - message
+    properties:
+      status:
+        type: string
+      code:
+        type: integer
       message:
         type: string
       fields:
@@ -982,3 +1138,72 @@ definitions:
         items:
           type: string
 
+  Category:
+    type: object
+    properties:
+      id:
+        type: String
+      name:
+        type: string
+      emailTemplate:
+        type: string
+      smsTemplate:
+        type: string
+      noteTemplate:
+        type: string
+      status:
+        type: integer
+        default: 0
+    required:
+      - name
+      - emailTemplate
+      - smsTemplate
+      - noteTemplate
+
+  Location:
+    type: object
+    properties:
+      id:
+        type: String
+      name:
+        type: string
+      address:
+        type: string
+      city:
+        type: string
+      status:
+        type: integer
+        default: 0
+    required:
+      - name
+      - address
+      - city
+
+  EmailTemplete:
+    type: object
+    properties:
+      id:
+        type: String
+      title:
+        type: string
+      body:
+        type: string
+    required:
+      - title
+      - body
+
+  Admin:
+    type: object
+    properties:
+      email:
+        type: String
+    required:
+      - email
+
+  AthorizationToken:
+    type: object
+    properties:
+      token:
+        type: String
+    required:
+      - token
